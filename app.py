@@ -10,9 +10,9 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import (
     confusion_matrix,
-    classification_report,
     roc_curve,
-    roc_auc_score
+    roc_auc_score,
+    accuracy_score
 )
 
 # ======================
@@ -20,14 +20,23 @@ from sklearn.metrics import (
 # ======================
 st.set_page_config(
     page_title="Prediksi Bantuan Sosial",
-    layout="wide",
-    initial_sidebar_state="expanded"
+    page_icon="🎯",
+    layout="wide"
+)
+
+st.markdown(
+    """
+    <style>
+    .block-container {padding-top: 2rem;}
+    </style>
+    """,
+    unsafe_allow_html=True
 )
 
 st.title("🎯 Prediksi Kelayakan Penerima Bantuan Sosial")
-st.markdown(
-    "Aplikasi ini digunakan untuk memprediksi kelayakan penerima bantuan sosial "
-    "berdasarkan data kriteria ekonomi dan sosial."
+st.caption(
+    "Aplikasi machine learning untuk memprediksi kelayakan penerima bantuan sosial "
+    "berdasarkan kriteria ekonomi dan sosial."
 )
 
 # ======================
@@ -40,24 +49,17 @@ def load_data():
     df = df[1:].reset_index(drop=True)
     return df
 
-
 df = load_data()
 
-# ======================
-# DATA PREVIEW
-# ======================
-with st.expander("📊 Lihat Data"):
+with st.expander("📊 Lihat Dataset"):
     st.dataframe(df, use_container_width=True)
 
 # ======================
 # PREPROCESSING
 # ======================
-target_col = df.columns[-1]  # kolom terakhir sebagai target
-X = df.drop(columns=[target_col])
-y = df[target_col]
-
-X = X.apply(pd.to_numeric)
-y = y.map({"Yes": 1, "No": 0})
+target_col = df.columns[-1]
+X = df.drop(columns=[target_col]).apply(pd.to_numeric)
+y = df[target_col].map({"Yes": 1, "No": 0})
 
 scaler = StandardScaler()
 X_scaled = scaler.fit_transform(X)
@@ -67,53 +69,85 @@ X_train, X_test, y_train, y_test = train_test_split(
 )
 
 # ======================
-# MODEL SELECTION
+# TRAIN MODELS
 # ======================
-model_choice = st.sidebar.selectbox(
-    "🧠 Pilih Model",
-    ["Logistic Regression", "Random Forest"]
-)
+lr_model = LogisticRegression()
+rf_model = RandomForestClassifier(n_estimators=100, random_state=42)
 
-if model_choice == "Logistic Regression":
-    model = LogisticRegression()
-else:
-    model = RandomForestClassifier(n_estimators=100, random_state=42)
+lr_model.fit(X_train, y_train)
+rf_model.fit(X_train, y_train)
 
-model.fit(X_train, y_train)
-y_pred = model.predict(X_test)
-y_prob = model.predict_proba(X_test)[:, 1]
+lr_pred = lr_model.predict(X_test)
+rf_pred = rf_model.predict(X_test)
+
+lr_prob = lr_model.predict_proba(X_test)[:, 1]
+rf_prob = rf_model.predict_proba(X_test)[:, 1]
 
 # ======================
-# METRICS
+# METRICS SUMMARY
 # ======================
 st.subheader("📈 Evaluasi Model")
 
+acc_lr = accuracy_score(y_test, lr_pred)
+acc_rf = accuracy_score(y_test, rf_pred)
+
 col1, col2, col3 = st.columns(3)
-col1.metric("Akurasi", f"{model.score(X_test, y_test):.2f}")
-col2.metric("ROC AUC", f"{roc_auc_score(y_test, y_prob):.2f}")
+col1.metric("Akurasi Logistic Regression", f"{acc_lr:.2f}")
+col2.metric("Akurasi Random Forest", f"{acc_rf:.2f}")
 col3.metric("Jumlah Data", df.shape[0])
+
+# ======================
+# BAR CHART AKURASI
+# ======================
+st.subheader("📊 Perbandingan Akurasi Model")
+
+acc_df = pd.DataFrame({
+    "Model": ["Logistic Regression", "Random Forest"],
+    "Akurasi": [acc_lr, acc_rf]
+})
+
+fig_acc, ax_acc = plt.subplots()
+sns.barplot(data=acc_df, x="Model", y="Akurasi", ax=ax_acc)
+ax_acc.set_ylim(0, 1)
+st.pyplot(fig_acc)
 
 # ======================
 # CONFUSION MATRIX
 # ======================
 st.subheader("📊 Confusion Matrix")
 
-cm = confusion_matrix(y_test, y_pred)
-fig_cm, ax_cm = plt.subplots()
-sns.heatmap(cm, annot=True, fmt="d", cmap="Blues", ax=ax_cm)
-ax_cm.set_xlabel("Predicted")
-ax_cm.set_ylabel("Actual")
-st.pyplot(fig_cm)
+col1, col2 = st.columns(2)
+
+with col1:
+    st.markdown("**Logistic Regression**")
+    cm_lr = confusion_matrix(y_test, lr_pred)
+    fig_lr, ax_lr = plt.subplots()
+    sns.heatmap(cm_lr, annot=True, fmt="d", cmap="Blues", ax=ax_lr)
+    ax_lr.set_xlabel("Predicted")
+    ax_lr.set_ylabel("Actual")
+    st.pyplot(fig_lr)
+
+with col2:
+    st.markdown("**Random Forest**")
+    cm_rf = confusion_matrix(y_test, rf_pred)
+    fig_rf, ax_rf = plt.subplots()
+    sns.heatmap(cm_rf, annot=True, fmt="d", cmap="Greens", ax=ax_rf)
+    ax_rf.set_xlabel("Predicted")
+    ax_rf.set_ylabel("Actual")
+    st.pyplot(fig_rf)
 
 # ======================
-# ROC CURVE
+# ROC CURVE (2 MODEL)
 # ======================
 st.subheader("📉 ROC Curve")
 
-fpr, tpr, _ = roc_curve(y_test, y_prob)
+fpr_lr, tpr_lr, _ = roc_curve(y_test, lr_prob)
+fpr_rf, tpr_rf, _ = roc_curve(y_test, rf_prob)
+
 fig_roc, ax_roc = plt.subplots()
-ax_roc.plot(fpr, tpr, label=f"AUC = {roc_auc_score(y_test, y_prob):.2f}")
-ax_roc.plot([0, 1], [0, 1], linestyle="--")
+ax_roc.plot(fpr_lr, tpr_lr, label=f"Logistic Regression (AUC={roc_auc_score(y_test, lr_prob):.2f})")
+ax_roc.plot(fpr_rf, tpr_rf, label=f"Random Forest (AUC={roc_auc_score(y_test, rf_prob):.2f})")
+ax_roc.plot([0, 1], [0, 1], linestyle="--", color="gray")
 ax_roc.set_xlabel("False Positive Rate")
 ax_roc.set_ylabel("True Positive Rate")
 ax_roc.legend()
@@ -124,47 +158,52 @@ st.pyplot(fig_roc)
 # ======================
 st.subheader("⭐ Feature Importance")
 
-if model_choice == "Random Forest":
-    importance = model.feature_importances_
-else:
-    importance = np.abs(model.coef_[0])
+tab1, tab2 = st.tabs(["Logistic Regression", "Random Forest"])
 
-fi_df = pd.DataFrame({
-    "Fitur": X.columns,
-    "Importance": importance
-}).sort_values(by="Importance", ascending=False)
+with tab1:
+    lr_importance = np.abs(lr_model.coef_[0])
+    fi_lr = pd.DataFrame({
+        "Fitur": X.columns,
+        "Importance": lr_importance
+    }).sort_values(by="Importance", ascending=False)
 
-fig_fi, ax_fi = plt.subplots()
-sns.barplot(data=fi_df, x="Importance", y="Fitur", ax=ax_fi)
-st.pyplot(fig_fi)
+    fig_fi_lr, ax_fi_lr = plt.subplots()
+    sns.barplot(data=fi_lr, x="Importance", y="Fitur", ax=ax_fi_lr)
+    st.pyplot(fig_fi_lr)
+
+with tab2:
+    rf_importance = rf_model.feature_importances_
+    fi_rf = pd.DataFrame({
+        "Fitur": X.columns,
+        "Importance": rf_importance
+    }).sort_values(by="Importance", ascending=False)
+
+    fig_fi_rf, ax_fi_rf = plt.subplots()
+    sns.barplot(data=fi_rf, x="Importance", y="Fitur", ax=ax_fi_rf)
+    st.pyplot(fig_fi_rf)
 
 # ======================
-# DISTRIBUTION PLOT
+# PREDIKSI DATA BARU
 # ======================
-st.subheader("📦 Distribusi Data")
+st.subheader("🧮 Prediksi Kelayakan")
 
-selected_feature = st.selectbox(
-    "Pilih Fitur",
-    X.columns
+model_choice = st.selectbox(
+    "Pilih Model Prediksi",
+    ["Logistic Regression", "Random Forest"]
 )
-
-fig_dist, ax_dist = plt.subplots()
-sns.histplot(df[selected_feature], kde=True, ax=ax_dist)
-st.pyplot(fig_dist)
-
-# ======================
-# PREDICTION INPUT
-# ======================
-st.subheader("🧮 Prediksi Data Baru")
 
 input_data = []
 for col in X.columns:
-    val = st.number_input(f"Masukkan {col}", value=0.0)
+    val = st.number_input(f"{col}", value=0.0)
     input_data.append(val)
 
-if st.button("Prediksi Kelayakan"):
+if st.button("Prediksi"):
     input_scaled = scaler.transform([input_data])
-    result = model.predict(input_scaled)[0]
+
+    if model_choice == "Logistic Regression":
+        result = lr_model.predict(input_scaled)[0]
+    else:
+        result = rf_model.predict(input_scaled)[0]
 
     if result == 1:
         st.success("✅ Layak Menerima Bantuan Sosial")
