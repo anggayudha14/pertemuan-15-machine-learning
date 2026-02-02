@@ -35,10 +35,11 @@ st.markdown(
 # ======================
 @st.cache_data
 def load_data():
-    df = pd.read_excel("dataset dan dataset kreteria.xlsx")
+    df = pd.read_excel("dataset.xlsx")
     df.columns = df.iloc[0]
     df = df[1:].reset_index(drop=True)
     return df
+
 
 df = load_data()
 
