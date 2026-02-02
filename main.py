@@ -1,3 +1,11 @@
+import streamlit as st
+
+st.set_page_config(
+    page_title="Prediksi Bantuan Sosial",
+    layout="wide"
+)
+
+
 from flask import Flask, render_template, request
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -98,5 +106,4 @@ def index():
         selected_model=selected_model
     )
 
-if __name__ == "__main__":
-    app.run(debug=True)
+
