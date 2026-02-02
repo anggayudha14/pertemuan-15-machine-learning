@@ -6,7 +6,7 @@ st.set_page_config(
 )
 
 
-from flask import Flask, render_template, request
+
 import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.metrics import confusion_matrix, roc_curve, auc
@@ -15,7 +15,7 @@ import numpy as np
 import pandas as pd
 import time
 
-app = Flask(__name__)
+
 
 @app.route("/", methods=["GET", "POST"])
 def index():
