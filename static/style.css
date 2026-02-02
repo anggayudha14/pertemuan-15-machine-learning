@@ -1,0 +1,46 @@
+body {
+    background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+    color: #eaeaea;
+    font-family: "Segoe UI", sans-serif;
+}
+
+.navbar {
+    background: rgba(0,0,0,0.4);
+    backdrop-filter: blur(6px);
+}
+
+.navbar-brand {
+    color: #ffffff;
+    font-weight: 600;
+}
+
+.glass-card {
+    background: rgba(255,255,255,0.08);
+    backdrop-filter: blur(10px);
+    border-radius: 14px;
+    padding: 20px;
+    border: none;
+}
+
+.form-control, .form-select {
+    background-color: rgba(255,255,255,0.15);
+    border: none;
+    color: #fff;
+}
+
+.form-control::placeholder {
+    color: #cfcfcf;
+}
+
+.btn-accent {
+    background-color: #4fd1c5;
+    color: #000;
+    border: none;
+}
+
+.result-badge {
+    background-color: #4fd1c5;
+    color: #000;
+    padding: 10px 16px;
+    font-size: 14px;
+}

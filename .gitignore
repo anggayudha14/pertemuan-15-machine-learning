@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+static/*.png
+.env
+.venv/
+dataset dan dataset kreteria.xlsx
+tp15.ipynb
